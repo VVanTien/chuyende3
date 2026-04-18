@@ -1,0 +1,14 @@
+column,dtype,total_count,missing_count,non_missing,missing_percent (%)
+Transportation type,str,139,3,136,2.16
+Transportation cost,str,139,3,136,2.16
+Start date,str,139,2,137,1.44
+End date,str,139,2,137,1.44
+Destination,str,139,2,137,1.44
+Traveler nationality,str,139,2,137,1.44
+Duration (days),float64,139,2,137,1.44
+Traveler name,str,139,2,137,1.44
+Traveler age,float64,139,2,137,1.44
+Accommodation cost,str,139,2,137,1.44
+Traveler gender,str,139,2,137,1.44
+Accommodation type,str,139,2,137,1.44
+Trip ID,int64,139,0,139,0.0

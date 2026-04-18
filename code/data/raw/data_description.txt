@@ -1,0 +1,48 @@
+Mô tả Tập dữ liệu Chi tiết Chuyến đi
+
+Tập dữ liệu này chứa thông tin về các hành trình du lịch khác nhau, bao gồm chi tiết thông tin người đi, điểm đến, thời lượng và các chi phí liên quan đến chỗ ở và di chuyển.
+
+Trip ID (Mã chuyến đi): Một mã số định danh duy nhất được gán cho mỗi bản ghi chuyến đi.
+
+Destination (Điểm đến): Thành phố và/hoặc quốc gia mà du khách đã đến. 
+    Ví dụ: "London, UK", "Paris", "Bali, Indonesia"
+
+Start date (Ngày bắt đầu): Ngày khởi hành của chuyến đi.
+    Định dạng: M/D/YYYY hoặc MM/DD/YYYY
+
+End date (Ngày kết thúc): Ngày kết thúc chuyến đi.
+    Định dạng: M/D/YYYY hoặc MM/DD/YYYY
+
+Duration (days) (Thời gian (ngày)): Tổng số ngày của chuyến đi.
+
+Traveler name (Tên du khách): Tên đầy đủ của cá nhân thực hiện chuyến đi.
+
+Traveler age (Tuổi du khách): Tuổi của du khách tính theo năm.
+
+Traveler gender (Giới tính du khách): Giới tính của người đi.
+    Male (Nam)
+    Female (Nữ)
+
+Traveler nationality (Quốc tịch du khách): Quốc tịch hoặc quốc gia xuất xứ của du khách.
+    Ví dụ: American (Mỹ), British (Anh), Korean (Hàn Quốc), Australian (Úc), v.v.
+
+Accommodation type (Loại hình chỗ ở): Loại hình lưu trú mà du khách chọn trong chuyến đi.
+    Hotel (Khách sạn)
+    Resort (Khu nghỉ dưỡng)
+    Villa (Biệt thự)
+    Airbnb (Nhà trọ/Căn hộ cho thuê Airbnb)
+    Hostel (Nhà nghỉ giá rẻ / Ký túc xá)
+    Riad (Nhà truyền thống Maroc)
+    Guesthouse (Nhà khách)
+    Vacation rental (Nhà cho thuê nghỉ dưỡng)
+
+Accommodation cost (Chi phí chỗ ở): Tổng chi phí phát sinh cho chỗ ở. Lưu ý rằng định dạng của cột này có thể khác nhau, một số giá trị có chứa ký hiệu tiền tệ như '$' hoặc chữ 'USD', trong khi các giá trị khác chỉ có số.
+
+Transportation type (Loại hình di chuyển): Phương tiện di chuyển chính được sử dụng cho chuyến đi.
+    Flight / Plane / Airplane (Máy bay)
+    Train / Subway (Tàu hỏa / Tàu điện ngầm)
+    Bus (Xe buýt)
+    Car rental / Car (Xe thuê / Ô tô cá nhân)
+    Ferry (Phà)
+
+Transportation cost (Chi phí di chuyển): Tổng chi phí phát sinh cho việc đi lại. Tương tự như chi phí chỗ ở, định dạng trong dữ liệu có thể khác nhau và bao gồm cả ký hiệu tiền tệ hoặc chữ.

@@ -1,0 +1,2 @@
+model,n_estimators,test_size,features,target,MAE,RMSE,R2
+RandomForestRegressor,200,0.2,"['Traveler age', 'Duration (days)', 'Destination', 'Traveler gender', 'Accommodation type', 'Transportation type']",Accommodation cost,693.8137,1237.795,-0.2722
