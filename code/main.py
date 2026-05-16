@@ -4,7 +4,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.data_processing import load_data, clean_data, add_features, missing_value_summary, save_relationship_analysis
-from src.visualization import visualization
+from src.visualization import visualization, plot_missing_values
 from src.model import train_model
 from src.config import DATA_PROCESSED, DATA_RAW
 
@@ -17,7 +17,9 @@ def run_pipeline():
     
     if df is not None:
         # Bước 1b: Thống kê Missing Value TRƯỚC khi làm sạch và lưu báo cáo CSV
-        missing_value_summary(df)
+        missing_report = missing_value_summary(df)
+        print("Đang vẽ biểu đồ phân tích Missing Value...")
+        plot_missing_values(missing_report)
 
         # Bước 2: Làm sạch
         print("Đang làm sạch dữ liệu...")
@@ -46,4 +48,3 @@ def run_pipeline():
 
 if __name__ == "__main__":
     run_pipeline()
-

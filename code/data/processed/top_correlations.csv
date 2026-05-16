@@ -1,8 +1,10 @@
 ,correlation_with_Total_Cost
-Accommodation cost,0.9805001619829771
-Transportation cost,0.8923182944676364
-Trip ID,0.38900438465382453
-Duration (days),-0.09163886921244183
+Cost per day,0.9806980164041232
+Accommodation cost,0.9804849392193721
+Accommodation cost per day,0.9659403358981099
+Transportation cost,0.8922966664939317
+Duration (days),-0.09308887723919149
 Travel Year,0.08932903959524771
+Travel Quarter,0.047104621336012995
 Travel Month,0.04681516506639448
-Traveler age,0.04136002739857133
+Traveler age,0.04034569807551201

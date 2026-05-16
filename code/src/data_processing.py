@@ -6,6 +6,8 @@ def load_data(data_path) -> pd.DataFrame | None:
     """Đọc dữ liệu gốc"""
     try:
         df = pd.read_csv(data_path)
+        if "Trip ID" in df.columns:
+            df = df.drop(columns=["Trip ID"])
         print(f"Đã tải dữ liệu thành công: {df.shape[0]} dòng.")
         return df
     except Exception as e:
@@ -114,25 +116,64 @@ def clean_data(df: pd.DataFrame) -> pd.DataFrame:
 
 def add_features(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Tạo thêm các đặc trưng hữu dụng cho việc thống kê và vẽ biểu đồ.
+    Tạo thêm các đặc trưng (features) hữu dụng cho việc thống kê, vẽ biểu đồ và huấn luyện mô hình.
     """
-    # Đảm bảo có cột Total Cost
+    # 1. Đảm bảo có cột Total Cost
     cost_cols = ['Accommodation cost', 'Transportation cost']
     if all(col in df.columns for col in cost_cols):
         df['Total Cost'] = df['Accommodation cost'] + df['Transportation cost']
     
-    # Trích xuất tháng và năm từ Start date
+    # 2. Chi phí trung bình mỗi ngày (Cost per day)
+    if 'Total Cost' in df.columns and 'Duration (days)' in df.columns:
+        # Tránh chia cho 0 bằng cách thay thế 0 thành NaN tạm thời hoặc cộng thêm một lượng nhỏ xíu
+        duration_safe = df['Duration (days)'].replace(0, np.nan)
+        df['Cost per day'] = df['Total Cost'] / duration_safe
+        
+        # Thêm luôn chi phí lưu trú / di chuyển mỗi ngày
+        df['Accommodation cost per day'] = df['Accommodation cost'] / duration_safe
+    
+    # 3. Trích xuất thời gian (Tháng, Năm, Mùa, Quý)
     if 'Start date' in df.columns and pd.api.types.is_datetime64_any_dtype(df['Start date']):
         df['Travel Month'] = df['Start date'].dt.month
         df['Travel Year'] = df['Start date'].dt.year
-        df['Travel Month Name'] = df['Start date'].dt.month_name()
+        df['Travel Quarter'] = df['Start date'].dt.quarter  # Quý (1-4)
+        
+        # Phân loại Mùa (Giả định theo chuẩn Bắc Bán Cầu)
+        season_map = {
+            12: 'Mùa Đông', 1: 'Mùa Đông', 2: 'Mùa Đông',
+            3: 'Mùa Xuân', 4: 'Mùa Xuân', 5: 'Mùa Xuân',
+            6: 'Mùa Hè', 7: 'Mùa Hè', 8: 'Mùa Hè',
+            9: 'Mùa Thu', 10: 'Mùa Thu', 11: 'Mùa Thu'
+        }
+        df['Travel Season'] = df['Travel Month'].map(season_map)
     
-    # Tạo phân nhóm độ tuổi
+    # 4. Phân nhóm Độ tuổi (Age Group)
     if 'Traveler age' in df.columns:
         bins = [0, 18, 25, 35, 50, 65, 100]
         labels = ['Trẻ em (<18)', 'Thanh niên (18-25)', 'Người trưởng thành (26-35)', 'Trung niên (36-50)', 'Trung cao niên (51-65)', 'Cao niên (>65)']
         df['Age Group'] = pd.cut(df['Traveler age'], bins=bins, labels=labels, right=True)
         
+    # 5. Phân nhóm Độ dài chuyến đi (Trip Duration Category)
+    if 'Duration (days)' in df.columns:
+        dur_bins = [0, 3, 7, 14, 1000]
+        dur_labels = ['Ngắn ngày (<=3)', 'Vừa (4-7)', 'Dài ngày (8-14)', 'Rất dài (>14)']
+        df['Duration Group'] = pd.cut(df['Duration (days)'], bins=dur_bins, labels=dur_labels, right=True)
+
+    # 6. Tách Thành phố và Quốc gia từ cột Destination (nếu có dấu phẩy)
+    if 'Destination' in df.columns:
+        # Giả sử format: "Thành phố, Quốc gia" -> Tách bằng dấu phẩy
+        # Dùng str.split với n=1 để chỉ tách ở dấu phẩy đầu tiên từ phải sang hoặc trái sang
+        # Nếu không có dấu phẩy, điền toàn bộ vào Country
+        split_dest = df['Destination'].str.split(',', n=1, expand=True)
+        if split_dest.shape[1] == 2:
+            df['Destination City'] = split_dest[0].str.strip()
+            df['Destination Country'] = split_dest[1].str.strip()
+            # Xử lý những dòng không có quốc gia (không có dấu phẩy)
+            df['Destination Country'] = df['Destination Country'].fillna(df['Destination City'])
+        else:
+            df['Destination Country'] = df['Destination'].str.strip()
+            df['Destination City'] = 'Unknown'
+
     return df
 
 
