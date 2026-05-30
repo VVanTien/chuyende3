@@ -12,7 +12,11 @@ import pandas as pd
 import numpy as np
 import joblib
 import warnings
+import time
+import itertools
 warnings.filterwarnings('ignore')
+
+from src.spinner import Spinner
 
 # --- Thư viện sklearn: Huấn luyện và đánh giá ---
 from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV, KFold
@@ -125,14 +129,18 @@ def train_model(df: pd.DataFrame) -> Pipeline:
     print("-" * 60)
 
     cv_results = {}
+    from src.spinner import Spinner
     for name, estimator in candidate_models.items():
         pipe = Pipeline(steps=[
             ('preprocessor', preprocessor),
             ('model', estimator)
         ])
-        # Dùng negative MAE vì sklearn tối thiểu hóa score
-        cv_scores = cross_val_score(pipe, X_train, y_train,
-                                    cv=kf, scoring='neg_mean_absolute_error', n_jobs=-1)
+        # Bọc spinner cho từng model — người dùng thấy đang chạy model nào
+        with Spinner(f"CV dang danh gia: {name}", style='dots'):
+            cv_scores = cross_val_score(
+                pipe, X_train, y_train,
+                cv=kf, scoring='neg_mean_absolute_error', n_jobs=-1
+            )
         mean_mae = -cv_scores.mean()
         std_mae  = cv_scores.std()
         cv_results[name] = {'cv_mae_mean': round(mean_mae, 2), 'cv_mae_std': round(std_mae, 2)}
@@ -147,6 +155,9 @@ def train_model(df: pd.DataFrame) -> Pipeline:
     # =========================================================================
     # BƯỚC 4: HYPERPARAMETER TUNING (GridSearchCV) CHO MÔ HÌNH TỐT NHẤT
     # =========================================================================
+    import time
+    import itertools
+
     print("\n" + "=" * 60)
     print(f"  BUOC 4: HYPERPARAMETER TUNING cho [{best_model_name}]")
     print("=" * 60)
@@ -154,19 +165,19 @@ def train_model(df: pd.DataFrame) -> Pipeline:
     # Định nghĩa không gian tìm kiếm cho từng loại mô hình
     param_grids = {
         'Random Forest': {
-            'model__n_estimators': [100, 200, 300],
-            'model__max_depth'   : [None, 10, 20],
+            'model__n_estimators'     : [100, 200, 300],
+            'model__max_depth'        : [None, 10, 20],
             'model__min_samples_split': [2, 5],
         },
         'Gradient Boosting': {
-            'model__n_estimators'  : [100, 200],
-            'model__learning_rate' : [0.05, 0.1, 0.2],
-            'model__max_depth'     : [3, 5],
+            'model__n_estimators' : [100, 200],
+            'model__learning_rate': [0.05, 0.1, 0.2],
+            'model__max_depth'    : [3, 5],
         },
         'XGBoost': {
-            'model__n_estimators'  : [100, 200],
-            'model__learning_rate' : [0.05, 0.1, 0.2],
-            'model__max_depth'     : [3, 5, 7],
+            'model__n_estimators' : [100, 200],
+            'model__learning_rate': [0.05, 0.1, 0.2],
+            'model__max_depth'    : [3, 5, 7],
         },
         'Linear Regression': {}  # Không có siêu tham số cần tuning
     }
@@ -180,23 +191,102 @@ def train_model(df: pd.DataFrame) -> Pipeline:
     param_grid = param_grids.get(best_model_name, {})
 
     if param_grid:
-        grid_search = GridSearchCV(
-            estimator=best_pipeline,
-            param_grid=param_grid,
-            cv=kf,
-            scoring='neg_mean_absolute_error',
-            n_jobs=-1,
-            refit=True,          # Tự động fit lại với best params trên toàn bộ X_train
-            verbose=0
+        from sklearn.model_selection import ParameterGrid
+        from sklearn.base import clone
+        from tqdm import tqdm
+
+        param_list     = list(ParameterGrid(param_grid))
+        n_combinations = len(param_list)
+        n_fits         = n_combinations * kf.get_n_splits()
+
+        print(f"  Khong gian tim kiem : {n_combinations} to hop tham so")
+        print(f"  Tong so lan fit     : {n_fits} lan  "
+              f"({n_combinations} to hop x {kf.get_n_splits()} folds)")
+        print()
+
+        # ── Vòng lặp thủ công thay GridSearchCV để có progress bar chi tiết ──
+        results      = []
+        best_mae     = float('inf')
+        best_params  = None
+        improved     = False
+
+        BAR_FMT = (
+            "  \033[96m{l_bar}{bar}\033[0m"           # cyan bar
+            "| {n_fmt}/{total_fmt} combo "
+            "[{elapsed}<{remaining}, {rate_fmt}]"
         )
-        grid_search.fit(X_train, y_train)
-        best_pipeline = grid_search.best_estimator_
-        print(f"  Best params: {grid_search.best_params_}")
-        print(f"  Best CV MAE (after tuning): {-grid_search.best_score_:.2f}")
+
+        with tqdm(
+            total=n_combinations,
+            desc=f"  \033[1mTuning {best_model_name}\033[0m",
+            unit="combo",
+            bar_format=BAR_FMT,
+            dynamic_ncols=True,
+            colour='cyan',
+        ) as pbar:
+
+            for i, params in enumerate(param_list, start=1):
+                # -- Clone pipeline và set params mới --
+                pipe_trial = clone(best_pipeline)
+                pipe_trial.set_params(**params)
+
+                # -- Chạy CV cho tổ hợp này --
+                cv_scores = cross_val_score(
+                    pipe_trial, X_train, y_train,
+                    cv=kf, scoring='neg_mean_absolute_error',
+                    n_jobs=-1
+                )
+                mae = -cv_scores.mean()
+                results.append({'params': params, 'mae': mae})
+
+                improved = mae < best_mae
+                if improved:
+                    best_mae    = mae
+                    best_params = params
+
+                # -- Label param values ngắn gọn để fit 1 dòng --
+                short_params = {k.split('__')[-1]: v for k, v in params.items()}
+                param_str    = ', '.join(f"{k}={v}" for k, v in short_params.items())
+                star         = " \033[93m★ NEW BEST!\033[0m" if improved else ""
+
+                # -- Cập nhật postfix tqdm (hiện trên thanh) --
+                pbar.set_postfix_str(
+                    f"MAE={mae:>8.2f}  best={best_mae:>8.2f}{star}",
+                    refresh=True
+                )
+
+                # -- In dòng log chi tiết mỗi combo bên dưới thanh --
+                tqdm.write(
+                    f"  \033[90m[{i:>2}/{n_combinations}]\033[0m "
+                    f"{param_str:<55} "
+                    f"MAE=\033[{'92' if improved else '37'}m{mae:>8.2f}\033[0m"
+                    + (f"  \033[93m← best!\033[0m" if improved else "")
+                )
+
+                pbar.update(1)
+
+        print()
+
+        # -- Refit trên toàn bộ X_train với best params --
+        print(f"  \033[92m✔ Hoan thanh tuning!\033[0m  "
+              f"Best MAE = \033[1m{best_mae:.2f}\033[0m")
+        print(f"  Best params : {best_params}")
+
+        print(f"\n  Refitting mo hinh tot nhat tren toan bo X_train...")
+        best_pipeline.set_params(**best_params)
+        with Spinner(f"Dang refit [{best_model_name}] voi best params", style='dots'):
+            t_start = time.time()
+            best_pipeline.fit(X_train, y_train)
+            t_refit = time.time() - t_start
+        print(f"  Refit xong trong {t_refit:.1f}s")
+
     else:
-        # Linear Regression không cần tuning, fit trực tiếp
-        best_pipeline.fit(X_train, y_train)
-        print(f"  [{best_model_name}] khong co sieu tham so can tuning. Bo qua.")
+        # Linear Regression không có siêu tham số, fit thẳng
+        print(f"  [{best_model_name}] khong co sieu tham so, bo qua buoc tuning.")
+        with Spinner(f"Dang fit [{best_model_name}]", style='classic'):
+            t_start = time.time()
+            best_pipeline.fit(X_train, y_train)
+        print(f"  Fit xong trong {time.time() - t_start:.1f}s")
 
     # =========================================================================
     # BƯỚC 5: ĐÁNH GIÁ CUỐI CÙNG TRÊN TẬP TEST (Hold-out)

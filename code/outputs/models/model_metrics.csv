@@ -1,2 +1,2 @@
 model,test_size,cv_folds,features,target,MAE,RMSE,R2
-XGBoost (Tuned),0.2,5,"['Traveler age', 'Duration (days)', 'Destination', 'Traveler gender', 'Accommodation type', 'Transportation type']",Accommodation cost,529.3593,1222.757,-0.7919
+Random Forest (Tuned),0.2,5,"['Traveler age', 'Duration (days)', 'Destination', 'Traveler gender', 'Accommodation type', 'Transportation type']",Accommodation cost,361.0194,1371.8215,0.8196

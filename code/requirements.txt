@@ -2,5 +2,5 @@ pandas
 numpy
 matplotlib
 scikit-learn
-python-dotenv
 seaborn
+xgboost

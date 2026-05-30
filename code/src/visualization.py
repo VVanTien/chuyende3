@@ -230,7 +230,7 @@ def create_scatter_plots(df: pd.DataFrame) -> None:
     fig.tight_layout()
     fig.savefig(os.path.join(FIGURES_PATH, 'scatter_correlations.png'), dpi=300, bbox_inches='tight')
     plt.close()
-
+    
 def create_correlation_heatmap(df: pd.DataFrame) -> None:
     """Biểu đồ Heatmap biểu diễn ma trận tương quan giữa các biến số"""
     # Lấy các cột giá trị số
@@ -373,9 +373,13 @@ def plot_executive_dashboard(df: pd.DataFrame) -> None:
     if 'Travel Year' not in df.columns or 'Travel Month' not in df.columns or 'Total Cost' not in df.columns:
         return
         
-    # Chuẩn bị dữ liệu thời gian
-    df_time = df.copy()
-    df_time['YearMonth'] = pd.to_datetime(df_time['Travel Year'].astype(str) + '-' + df_time['Travel Month'].astype(str), format='%Y-%m')
+    # Chuẩn bị dữ liệu thời gian (loại bỏ NaN trước khi chuyển đổi)
+    df_time = df.dropna(subset=['Travel Year', 'Travel Month', 'Total Cost']).copy()
+    df_time['YearMonth'] = pd.to_datetime(
+        df_time['Travel Year'].astype(int).astype(str) + '-' +
+        df_time['Travel Month'].astype(int).astype(str),
+        format='%Y-%m'
+    )
     df_time = df_time.sort_values('YearMonth')
     
     fig, axes = plt.subplots(2, 2, figsize=(18, 12))
@@ -454,8 +458,12 @@ def plot_rolling_trends(df: pd.DataFrame) -> None:
     if 'Travel Year' not in df.columns or 'Travel Month' not in df.columns or 'Total Cost' not in df.columns:
         return
         
-    df_time = df.copy()
-    df_time['YearMonth'] = pd.to_datetime(df_time['Travel Year'].astype(str) + '-' + df_time['Travel Month'].astype(str), format='%Y-%m')
+    df_time = df.dropna(subset=['Travel Year', 'Travel Month', 'Total Cost']).copy()
+    df_time['YearMonth'] = pd.to_datetime(
+        df_time['Travel Year'].astype(int).astype(str) + '-' +
+        df_time['Travel Month'].astype(int).astype(str),
+        format='%Y-%m'
+    )
     df_time = df_time.sort_values('YearMonth')
     
     # Tính chi phí trung bình theo tháng
